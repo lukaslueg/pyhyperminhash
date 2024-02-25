@@ -2,6 +2,11 @@
 name = "pyhyperminhash"
 version = "0.1.0"
 edition = "2021"
+authors = ["Lukas Lueg <lukas.lueg@gmail.com>"]
+repository = "https://github.com/lukaslueg/pyhyperminhash"
+description = "Fast, constant-memory cardinality approximation"
+readme = "README.md"
+license = "MIT"
 
 [lib]
 name = "pyhyperminhash"
