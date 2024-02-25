@@ -22,3 +22,4 @@ built = { version = "0.7", features = ["cargo-lock", "dependency-tree"] }
 [profile.release]
 lto = "thin"
 codegen-units = 1
+strip = true
