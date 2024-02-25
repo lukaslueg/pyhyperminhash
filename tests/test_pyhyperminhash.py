@@ -5,6 +5,15 @@ import pyhyperminhash
 
 class TestPyhyperminhash(unittest.TestCase):
 
+    def test_version(self):
+        self.assertIsInstance(pyhyperminhash.__version__, str)
+
+    def test_version_info(self):
+        self.assertIsInstance(pyhyperminhash.__version_info__(), str)
+
+
+class TestSketch(unittest.TestCase):
+
     def test_constructor(self):
         sk = pyhyperminhash.Sketch()
         self.assertFalse(sk)
