@@ -8,7 +8,8 @@ and union operation.
 
 The class `Sketch` can be used to count unique elements that were encountered during
 the instance's lifetime. Unlike e.g. when using a `set`, the memory consumed by the
-`Sketch`-instance does _not_ grow as elements are added.
+`Sketch`-instance does _not_ grow as elements are added; each `Sketch`-instance
+consumes approximately 32kb of memory, independent of the number of elements.
 
 Adding new elements to a `Sketch` is preferably done using `.add_bytes()`, akin
 to `.digest()` for `hashlib`-objects. It is also possible to use `.add()` if a bytes-like
