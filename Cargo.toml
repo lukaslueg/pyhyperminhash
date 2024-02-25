@@ -1,0 +1,19 @@
+[package]
+name = "pyhyperminhash"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "pyhyperminhash"
+crate-type = ["cdylib"]
+
+[dependencies]
+hyperminhash = { version = "0.1", features = ["serialize"] }
+pyo3 = "0.20"
+
+[build-dependencies]
+built = { version = "0.7", features = ["cargo-lock", "dependency-tree"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
