@@ -1,6 +1,7 @@
 # Hyperminhash for Python
 
 [![Docs](https://docs.rs/hyperminhash/badge.svg)](https://docs.rs/hyperminhash)
+[![PyPI](https://badge.fury.io/py/pyhyperminhash.svg)](https://pypi.org/project/pyhyperminhash/)
 
 Very fast, constant memory-footprint cardinality approximation, including intersection
 and union operation.
