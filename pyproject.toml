@@ -4,6 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "pyhyperminhash"
+description = "Very fast, constant memory-footprint cardinality approximation, including intersection"
 authors = [
 	{ name="Lukas Lueg", email="lukas.lueg@gmail.com" }
 ]
