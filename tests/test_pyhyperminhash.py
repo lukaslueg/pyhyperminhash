@@ -11,6 +11,9 @@ class TestPyhyperminhash(unittest.TestCase):
     def test_version_info(self):
         self.assertIsInstance(pyhyperminhash.__version_info__(), str)
 
+    def test_hyperminhash_version(self):
+        self.assertIsInstance(pyhyperminhash.__hyperminhash_version__, str)
+
 
 class TestSketch(unittest.TestCase):
 

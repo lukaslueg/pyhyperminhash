@@ -56,4 +56,5 @@ def __version_info__() -> str:
 
 
 __version__: str
+__hyperminhash_version__: str
 __profile__: str

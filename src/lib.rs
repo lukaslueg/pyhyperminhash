@@ -141,12 +141,28 @@ fn __version_info__() -> PyResult<String> {
     ))
 }
 
+const fn __hyperminhash_version__() -> &'static str {
+    let mut idx = 0;
+    while idx < built_info::DEPENDENCIES.len() {
+        let (pkg, version) = built_info::DEPENDENCIES[idx];
+        match pkg.as_bytes() {
+            b"hyperminhash" => {
+                return version;
+            }
+            _ => {}
+        }
+        idx += 1;
+    }
+    return "";
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 fn pyhyperminhash(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Sketch>()?;
     m.add_function(wrap_pyfunction!(__version_info__, m)?)?;
     m.add("__version__", built_info::PKG_VERSION)?;
+    m.add("__hyperminhash_version__", __hyperminhash_version__())?;
     m.add("__profile__", built_info::PROFILE)?;
     Ok(())
 }
