@@ -27,6 +27,46 @@ impl Sketch {
         })
     }
 
+    #[staticmethod]
+    /// Construct a new Sketch from an iterator of objects
+    fn from_iter(py: Python, mut iter: &pyo3::types::PyIterator) -> PyResult<Self> {
+        let mut sk = hyperminhash::Sketch::default();
+        loop {
+            // SAFETY: We never observe `obj` after hashing it
+            let pool = unsafe { py.new_pool() };
+            match iter.next() {
+                Some(obj) => {
+                    obj?.hash().map(|h| sk.add(h))?;
+                }
+                None => {
+                    break;
+                }
+            }
+            drop(pool);
+        }
+        Ok(Self { inner: sk })
+    }
+
+    #[staticmethod]
+    /// Construct a new Sketch from an iterator of bytes-objects
+    fn from_iter_bytes(py: Python, mut iter: &pyo3::types::PyIterator) -> PyResult<Self> {
+        let mut sk = hyperminhash::Sketch::default();
+        loop {
+            // SAFETY: We never observe `obj` after hashing it
+            let pool = unsafe { py.new_pool() };
+            match iter.next() {
+                Some(obj) => {
+                    obj?.extract().map(|h| sk.add_bytes(h))?;
+                }
+                None => {
+                    break;
+                }
+            }
+            drop(pool);
+        }
+        Ok(Self { inner: sk })
+    }
+
     /// Serialize this Sketch into an opaque buffer.
     fn save(&self) -> PyResult<std::borrow::Cow<[u8]>> {
         let mut buf = Vec::with_capacity(32768);

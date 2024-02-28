@@ -17,9 +17,10 @@ object can't be provided; the object's `hash()` is then used to provide a unique
 identifier for that object.
 
 ```python
+# Construct an empty Sketch
 sk = pyhyperminhash.Sketch()
 assert not bool(sk)  # The Sketch is empty
-sk.add_bytes(b'Foo')
+sk.add_bytes(b'Foo')  # Add elements
 sk.add_bytes(b'Bar')
 sk.add(42)
 assert bool(sk)  # The Sketch is not empty
@@ -34,6 +35,17 @@ sk3 = pyhyperminhash.Sketch()
 sk3.add(42)
 sk3.add_bytes(b'Foo')
 assert sk3.intersection(sk1) > 0.0  # Approximately 1.0, due to `Foo`
+
+buf = sk.save()  # Serialize the Sketch into a bytes-buffer
+new_sk = pyhyperminhash.Sketch.load(buf)  # Deserialize a Sketch
+assert len(new_sk) == len(sk)
+
+# Construct a Sketch from any iterator directly.
+# This is faster than adding elements one by one.
+sk = pyhyperminhash.Sketch.from_iter(iter(range(100)))
+
+with open('complaints.txt', 'rb') as f:
+    sk = pyhyperminhash.Sketch.from_iter_bytes(f)
 ```
 
 Although convenient, using `.add()` over `.add_bytes()` has two downsides:
@@ -44,3 +56,22 @@ in order to prevent certain DOS-attacks. The randomness introduced here means th
 the count-approximation provided by this package may not be stable from run to run.
 
 See the documentation for the underlying [implementation](https://docs.rs/hyperminhash) for additional information.
+
+### Performance examples
+
+Reading a file of 55 million lines, 725.940 unique elements, 100 characters per line on average.
+
+Method                     | Wall-clock time | Memory consumed | Count   |
+---------------------------|-----------------|-----------------|---------|
+_no work_                  | 9.5 seconds     | _nil_           | _nil_   |
+`Sketch.from_iter_bytes()` | 10.13 seconds   | ~32 kilobytes   | 734,628 |
+`set()`                    | 14.99 seconds   | ~164 megabytes  | 725,940 |
+
+### FAQ
+
+* Can I extract an element that was previously added from a `Sketch`?
+  * No.
+* Can I check if an element has previously been added to a `Sketch`?
+  * No.
+* Wow, why use this, then?
+  * It's very fast at counting unique things. And it does not use much memory.

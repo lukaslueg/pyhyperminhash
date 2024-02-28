@@ -1,6 +1,17 @@
+import typing
+
+
 class Sketch:
     @staticmethod
     def load(buf: bytes) -> 'Sketch':
+        ...
+
+    @staticmethod
+    def from_iter(iter: typing.Iterator) -> 'Sketch':
+        ...
+
+    @staticmethod
+    def from_iter_bytes(iter: typing.Iterator[bytes]) -> 'Sketch':
         ...
 
     def save(self) -> bytes:
