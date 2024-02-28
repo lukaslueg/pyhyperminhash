@@ -130,6 +130,17 @@ impl Sketch {
         inner.union(&other.inner);
         Ok(Self { inner })
     }
+
+    fn __eq__(&self, other: &Self) -> bool {
+        self.inner == other.inner
+    }
+
+    fn __hash__(&self) -> u64 {
+        use std::hash::{Hash, Hasher};
+        let mut s = std::hash::DefaultHasher::new();
+        self.inner.hash(&mut s);
+        s.finish()
+    }
 }
 
 #[pyfunction]
