@@ -141,6 +141,7 @@ fn __version_info__() -> PyResult<String> {
     ))
 }
 
+#[allow(clippy::single_match)]
 const fn __hyperminhash_version__() -> &'static str {
     let mut idx = 0;
     while idx < built_info::DEPENDENCIES.len() {
@@ -153,7 +154,7 @@ const fn __hyperminhash_version__() -> &'static str {
         }
         idx += 1;
     }
-    return "";
+    ""
 }
 
 /// A Python module implemented in Rust.
