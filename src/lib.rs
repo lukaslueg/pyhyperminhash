@@ -79,6 +79,10 @@ impl Sketch {
         obj.hash().map(|h| self.inner.add(h))
     }
 
+    fn __iadd__(&mut self, obj: &PyAny) -> PyResult<()> {
+        self.add(obj)
+    }
+
     /// Add a bytes-object to this Sketch
     fn add_bytes(&mut self, buf: &[u8]) {
         self.inner.add_bytes(buf);

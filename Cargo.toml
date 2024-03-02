@@ -1,6 +1,6 @@
 [package]
 name = "pyhyperminhash"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 authors = ["Lukas Lueg <lukas.lueg@gmail.com>"]
 repository = "https://github.com/lukaslueg/pyhyperminhash"

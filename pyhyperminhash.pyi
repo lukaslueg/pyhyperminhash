@@ -44,6 +44,9 @@ class Sketch:
     def __float__(self) -> float:
         ...
 
+    def __iadd__(self, other) -> 'Sketch':
+        ...
+
     def __iand__(self, other: 'Sketch') -> 'Sketch':
         ...
 

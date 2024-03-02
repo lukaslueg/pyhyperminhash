@@ -37,7 +37,7 @@ class TestSketch(unittest.TestCase):
         self.assertAlmostEqual(sk.cardinality(), 1.0, 2)
         self.assertEqual(int(sk), 1)
         self.assertEqual(len(sk), 1)
-        sk.add('foo1')
+        sk += 'foo2'
         self.assertAlmostEqual(sk.cardinality(), 2.0, 2)
         self.assertAlmostEqual(float(sk), 2.0, 2)
         self.assertEqual(int(sk), 2)
