@@ -57,6 +57,39 @@ the count-approximation provided by this package may not be stable from run to r
 
 See the documentation for the underlying [implementation](https://docs.rs/hyperminhash) for additional information.
 
+### Usage as a sqlite3 aggregate function
+
+```python
+class PyHyperminhashCounter:
+    def __init__(self):
+        self.sk = pyhyperminhash.Sketch()
+
+    def step(self, *args) -> None:
+        self.sk += args
+
+    def finalize(self) -> int:
+        return int(self.sk)
+
+
+con = sqlite3.connect(":memory:")
+# Create the function for the current connection
+con.create_aggregate("pyhmh", -1, PyHyperminhashCounter)
+
+# Some dummy data
+cur = con.execute("CREATE TABLE test(i, j)")
+cur.executemany("INSERT INTO test(i, j) VALUES(?, ?)",
+                ((f'foo{i % 4291}bar', i % 819)
+                 for i in range(1000000)))
+
+# Returns exactly 502047
+cur.execute("SELECT COUNT(*) FROM (SELECT DISTINCT i, j FROM test)")
+print(cur.fetchone()[0])
+
+# Returns approximately 500000, but faster
+cur.execute("SELECT pyhmh(i, j) FROM test")
+print(cur.fetchone()[0])
+```
+
 ### Performance examples
 
 Reading a file of 55 million lines, 725.940 unique elements, 100 characters per line on average.
