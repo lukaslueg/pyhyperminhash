@@ -14,7 +14,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 hyperminhash = { version = "0.1", features = ["serialize"] }
-pyo3 = { version = "0.20", default_features = false, features = ["abi3", "abi3-py38", "extension-module", "macros"] }
+pyo3 = { version = "0.24", default_features = false, features = ["abi3", "abi3-py38", "extension-module", "macros"] }
 
 [build-dependencies]
 built = { version = "0.7", features = ["cargo-lock", "dependency-tree"] }
