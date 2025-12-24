@@ -6,7 +6,7 @@ import pyhyperminhash
 
 
 @contextlib.contextmanager
-def timeit() -> typing.Generator[typing.Callable[[], float]]:
+def timeit() -> typing.Generator[typing.Callable[[], float], None, None]:
     t1 = t2 = time.perf_counter()
     yield lambda: t2 - t1
     t2 = time.perf_counter()
