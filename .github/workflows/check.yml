@@ -40,6 +40,7 @@ jobs:
         run: |
           set -e
           source .venv/bin/activate
+          pip install --upgrade pip
           pip install ruff
           ruff check --verbose
           ruff format --check --diff
@@ -63,3 +64,5 @@ jobs:
           source .venv/bin/activate
           python3 examples/simple.py
           python3 examples/sqlite_agg.py
+          python3 examples/large_file.py
+          python3 examples/unique_files.py tests examples

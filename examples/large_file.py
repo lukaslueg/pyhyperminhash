@@ -8,10 +8,14 @@ DEMO_FILE = "demo_file.txt"
 
 
 def create_file():
+    if pyhyperminhash.__profile__ == "release":
+        size = 50_000_000
+    else:
+        size = 50_000
     chars = ["a", "b"]
     with open(DEMO_FILE, "xt") as f:
         print("Creating file...")
-        for _ in range(50_000_000):
+        for _ in range(size):
             f.write("".join(random.choices(chars, k=20)))
             f.write("\n")
 
@@ -30,7 +34,7 @@ def read_set() -> int:
 
 def read_phmh() -> int:
     with open(DEMO_FILE, "rb") as f:
-        s = pyhyperminhash.Sketch.from_iter_bytes(f)
+        s = pyhyperminhash.Sketch.from_iter(f)
     return len(s)
 
 
