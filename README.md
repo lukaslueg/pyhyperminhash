@@ -12,6 +12,8 @@ the instance's lifetime. Unlike e.g. when using a `set`, the memory consumed by 
 consumes approximately 32kb of memory, independent of the number of elements.
 
 ```python
+# Basic usage
+
 # Construct an empty Sketch
 sk = pyhyperminhash.Sketch()
 assert not sk  # The Sketch is empty
@@ -21,31 +23,48 @@ sk.add(42)
 assert sk  # The Sketch is not empty
 assert float(sk) == sk.cardinality()  # Approximately 3.0
 assert int(sk) == len(sk)  # Approximately 3
+```
+
+```python
+# Sketches can be combined...
 
 sk2 = pyhyperminhash.Sketch()
 sk2.add('Foobar')
-sk2 &= sk1  # sk2 now holds all elements that were in `sk` or `sk2`
+sk2 &= sk  # sk2 now holds all elements that were in `sk` or `sk2`
 
 sk3 = pyhyperminhash.Sketch()
 sk3.add(42)
 sk3.add('Foo')
 assert sk3.intersection(sk1) > 0.0  # Approximately 1.0, due to `Foo`
+```
+
+```python
+# Sketches can be stored for later use
 
 buf = sk.save()  # Serialize the Sketch into a bytes-buffer
 new_sk = pyhyperminhash.Sketch.load(buf)  # Deserialize a Sketch
 assert len(new_sk) == len(sk)
+```
 
-# Construct a Sketch from any iterator directly.
-# This is faster than adding elements one by one.
+```python
+# Sketches can be constructed from iterators directly, which avoids
+# materializing all objects simultaneously.
+
+# This is also faster than adding elements one by one.
 sk = pyhyperminhash.Sketch.from_iter(iter(range(100)))
 
 # Read all lines; uses binary mode to avoid Unicode encoding+decoding
 with open('complaints.txt', 'rb') as f:
-    sk = pyhyperminhash.Sketch.from_iter_bytes(f)
+    sk = pyhyperminhash.Sketch.from_iter(f)
 
 # Add an entire file-like object
 with open('complaints.txt', 'rb') as f:
     sk.add_reader(f)
+```
+
+```python
+# Entry-objects can be used to construct what represents a single
+# object from multiple parts. They consume very little memory.
 
 # Add sub-objects that don't fit into memory
 e = pyhyperminhash.Entry()
@@ -53,6 +72,17 @@ with open('complaints.txt', 'rb') as f:
     e.add(f.read(4096))  # Add two parts to this Entry
     e.add(f.read(4096))
     sk.add_entry(e)  # This counts as one object
+
+sk1.add_entry(e)  # Entry-objects can be added to mulitple Sketches
+
+# Entry-objects can be "forked" at the state they are currently at
+e2 = e.fork()
+e2.add("Foo")
+sk.add_entry(e2)  # This is a new object in `Sketch`...
+
+e3 = e.fork()
+e3.add("Bar")
+sk.add_entry(e3)  # So is this, without re-computing `e`
 ```
 
 It is very much preferred to provide `bytes` to `Sketch.add()` and `Entry.add()`,
@@ -100,11 +130,11 @@ print(cur.fetchone()[0])
 
 Reading a file of 50 million lines, ~1,000,000 unique elements, 20 characters per line.
 
-Method                     | Wall-clock time | Memory consumed | Count     |
----------------------------|-----------------|-----------------|-----------|
-_no work_                  | 2.3 seconds     | _nil_           | _nil_     |
-`set()`                    | 14.99 seconds   | ~144 megabytes  | 1,048,576 |
-`Sketch.from_iter_bytes()` | 1.8 seconds     | ~32 kilobytes   | 1,041,936 |
+Method                     | Wall-clock time | Memory consumed | Count      |
+---------------------------|-----------------|-----------------|------------|
+Count lines                | 2.3 seconds     | _nil_           | 50,000,000 |
+`set()`                    | 14.99 seconds   | ~144 megabytes  | 1,048,576  |
+`Sketch.from_iter()`       | 1.8 seconds     | ~32 kilobytes   | 1,041,936  |
 
 ### FAQ
 
