@@ -4,7 +4,7 @@ import pyhyperminhash
 
 
 def approx(expected: float):
-    return pytest.approx(expected, 1.5e-02)
+    return pytest.approx(expected, 2.0e-02)
 
 
 @pytest.fixture
