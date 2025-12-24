@@ -1,0 +1,65 @@
+name: Clippy, Format
+
+on: [pull_request, push, workflow_dispatch]
+
+jobs:
+  fmt:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  clippy:
+    name: cargo clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - run: cargo clippy --all --tests -- -D warnings
+
+  pytest:
+    name: pytest
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pyver: ["3.9", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.pyver }}
+      - name: Create venv
+        run: python3 -m venv .venv
+      - name: Run ruff
+        run: |
+          set -e
+          source .venv/bin/activate
+          pip install ruff
+          ruff check --verbose
+          ruff format --check --diff
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          args: --out dist
+      - name: Run pytest
+        run: |
+          set -e
+          source .venv/bin/activate
+          pip install pyhyperminhash --find-links dist --force-reinstall
+          pip install pytest
+          RUST_BACKTRACE=1 pytest -v
+      - name: Run examples
+        run: |
+          set -e
+          source .venv/bin/activate
+          python3 examples/simple.py
+          python3 examples/sqlite_agg.py
