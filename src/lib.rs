@@ -22,10 +22,11 @@ impl std::io::Read for PyFileLikeObject {
     }
 }
 
+// TODO The Box<> is a temporary fix for pyo3 #5714
 #[pyclass(eq)]
 #[derive(Clone, PartialEq)]
 struct Entry {
-    inner: hyperminhash::Entry,
+    inner: Box<hyperminhash::Entry>,
 }
 
 /// A temporary object that represents a single (possibly unique) object in a `Sketch`, comprised
@@ -54,7 +55,7 @@ impl Entry {
     #[new]
     fn new() -> Self {
         Self {
-            inner: hyperminhash::Entry::default(),
+            inner: Box::default(),
         }
     }
 
