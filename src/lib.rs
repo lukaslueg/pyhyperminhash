@@ -247,6 +247,10 @@ impl Sketch {
             Self { inner }
         })
     }
+
+    fn __repr__(&self) -> String {
+        format!("Sketch(cardinality={})", self.inner.cardinality())
+    }
 }
 
 #[pyfunction]
