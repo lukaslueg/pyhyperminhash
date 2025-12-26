@@ -109,6 +109,10 @@ impl Entry {
         !self.inner.is_empty()
     }
 
+    fn __repr__(&self) -> String {
+        format!("Entry(digest={:x})", self._digest())
+    }
+
     fn _digest(&self) -> u128 {
         self.inner.digest()
     }
