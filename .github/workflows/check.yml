@@ -29,6 +29,7 @@ jobs:
     strategy:
       matrix:
         pyver: ["3.9", "3.13", "3.14"]
+        features: ["--all-features", "--no-default-features"]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v5
@@ -50,7 +51,7 @@ jobs:
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
-          args: --out dist
+          args: --out dist ${{ matrix.features }}
       - name: Run pytest
         run: |
           set -e
