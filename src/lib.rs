@@ -194,8 +194,8 @@ impl Sketch {
 
     /// Merge another Sketch into this instance
     #[pyo3(signature=(other, /))]
-    fn union(&mut self, py: Python<'_>, other: &Self) {
-        py.detach(|| self.inner.union(&other.inner));
+    fn union(&mut self, other: &Self) {
+        self.inner.union(&other.inner);
     }
 
     /// Compute the estimated number of unique objects that are present in both Sketches
@@ -231,8 +231,8 @@ impl Sketch {
     }
 
     /// Same as `.union`
-    fn __iand__(&mut self, py: Python<'_>, other: &Self) {
-        self.union(py, other);
+    fn __iand__(&mut self, other: &Self) {
+        self.union(other);
     }
 
     /// Same as `.union`, but creating a new Sketch in the process

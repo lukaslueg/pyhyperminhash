@@ -37,6 +37,36 @@ def bench_cardinality():
     bench("Sketch.cardinality", 500_000, inner)
 
 
+def bench_union():
+    sk = pyhyperminhash.Sketch.from_iter(iter(range(5_000_000)))
+    sk2 = pyhyperminhash.Sketch.from_iter(iter(range(1_000_000)))
+
+    def inner():
+        sk.union(sk2)
+
+    bench("Sketch.union", 500_000, inner)
+
+
+def bench_intersection():
+    sk = pyhyperminhash.Sketch.from_iter(iter(range(5_000_000)))
+    sk2 = pyhyperminhash.Sketch.from_iter(iter(range(1_000_000)))
+
+    def inner():
+        sk.intersection(sk2)
+
+    bench("Sketch.intersection", 50_000, inner)
+
+
+def bench_similarity():
+    sk = pyhyperminhash.Sketch.from_iter(iter(range(5_000_000)))
+    sk2 = pyhyperminhash.Sketch.from_iter(iter(range(1_000_000)))
+
+    def inner():
+        sk.similarity(sk2)
+
+    bench("Sketch.similarity", 50_000, inner)
+
+
 def bench_add():
     sk = pyhyperminhash.Sketch()
     bench("Sketch.add object", 10_000_000, lambda: sk.add("Foobar"))
@@ -92,6 +122,12 @@ def bench_reader():
 
 def _main():
     bench_cardinality()
+    print("---")
+    bench_union()
+    print("---")
+    bench_intersection()
+    print("---")
+    bench_similarity()
     print("---")
     bench_add()
     print("---")
