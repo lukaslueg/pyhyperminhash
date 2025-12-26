@@ -61,18 +61,21 @@ impl Entry {
 
     /// Add any object to this `Entry` using the object's `hash()`.
     #[pyo3(signature=(obj, /))]
-    fn add(&mut self, py: Python<'_>, obj: &Bound<'_, PyAny>) -> PyResult<()> {
+    fn add(&mut self, obj: &Bound<'_, PyAny>) -> PyResult<()> {
         if let Ok(b) = obj.extract::<std::borrow::Cow<[u8]>>() {
-            py.detach(|| self.inner.add(b));
+            if b.len() >= 4096 {
+                obj.py().detach(|| self.inner.add(b));
+            } else {
+                self.inner.add(b);
+            }
         } else {
-            let h = obj.hash()?;
-            py.detach(|| self.inner.add(h));
+            self.inner.add(obj.hash()?);
         }
         Ok(())
     }
 
-    fn __iadd__(&mut self, py: Python<'_>, obj: &Bound<'_, PyAny>) -> PyResult<()> {
-        self.add(py, obj)
+    fn __iadd__(&mut self, obj: &Bound<'_, PyAny>) -> PyResult<()> {
+        self.add(obj)
     }
 
     /// Read a file-like object and add it to this Entry
@@ -118,11 +121,12 @@ impl Sketch {
     /// Construct a new Sketch from an iterator of objects
     #[staticmethod]
     #[pyo3(signature=(src, /))]
-    fn from_iter(src: Bound<'_, pyo3::types::PyIterator>) -> PyResult<Self> {
-        let inner = src
-            .map(|maybe_obj| maybe_obj.and_then(|obj| obj.hash()))
-            .collect::<PyResult<hyperminhash::Sketch>>()?;
-        Ok(Self { inner })
+    fn from_iter(src: &Bound<'_, pyo3::types::PyIterator>) -> PyResult<Self> {
+        let mut sk = Self::new();
+        for maybe_obj in src {
+            sk.add(&(maybe_obj?))?;
+        }
+        Ok(sk)
     }
 
     /// Serialize this Sketch into an opaque buffer.
@@ -134,15 +138,15 @@ impl Sketch {
 
     /// Add any object to this Sketch using the object's `hash()`
     #[pyo3(signature=(obj, /))]
-    fn add(&mut self, py: Python<'_>, obj: &Bound<'_, PyAny>) -> PyResult<()> {
+    fn add(&mut self, obj: &Bound<'_, PyAny>) -> PyResult<()> {
         let mut e = Entry::new();
-        e.add(py, obj)?;
+        e.add(obj)?;
         self.add_entry(&e);
         Ok(())
     }
 
-    fn __iadd__(&mut self, py: Python<'_>, obj: &Bound<'_, PyAny>) -> PyResult<()> {
-        self.add(py, obj)
+    fn __iadd__(&mut self, obj: &Bound<'_, PyAny>) -> PyResult<()> {
+        self.add(obj)
     }
 
     /// Read a file-like object and add it to this Sketch
