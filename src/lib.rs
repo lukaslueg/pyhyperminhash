@@ -4,6 +4,8 @@ pub mod built_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
 
+const GIL_BUFFER_THRESHOLD: usize = 4096;
+
 struct PyFileLikeObject(Py<PyAny>);
 
 impl std::io::Read for PyFileLikeObject {
@@ -63,7 +65,7 @@ impl Entry {
     #[pyo3(signature=(obj, /))]
     fn add(&mut self, obj: &Bound<'_, PyAny>) -> PyResult<()> {
         if let Ok(b) = obj.extract::<std::borrow::Cow<[u8]>>() {
-            if b.len() >= 4096 {
+            if b.len() >= GIL_BUFFER_THRESHOLD {
                 obj.py().detach(|| self.inner.add(b));
             } else {
                 self.inner.add(b);
@@ -74,11 +76,24 @@ impl Entry {
         Ok(())
     }
 
+    /// Add raw bytes to this `Entry`. This differs from `.add()` in that `a+b+c`,
+    /// `ab+c`, `a+bc`, ... are _not_ considered distinct objects by multiple calls
+    /// to `.add_bytes()`.
+    #[pyo3(signature=(obj, /))]
+    fn add_bytes(&mut self, obj: &Bound<'_, pyo3::types::PyBytes>) {
+        let b = obj.as_bytes();
+        if b.len() >= GIL_BUFFER_THRESHOLD {
+            obj.py().detach(|| self.inner.add_bytes(b));
+        } else {
+            self.inner.add_bytes(b);
+        }
+    }
+
     fn __iadd__(&mut self, obj: &Bound<'_, PyAny>) -> PyResult<()> {
         self.add(obj)
     }
 
-    /// Read a file-like object and add it to this Entry
+    /// Read a file-like object and add it to this `Entry`.
     #[pyo3(signature=(src, /))]
     fn add_reader(&mut self, py: Python<'_>, src: Py<PyAny>) -> PyResult<u64> {
         Ok(py.detach(|| self.inner.add_reader(PyFileLikeObject(src)))?)
@@ -87,6 +102,15 @@ impl Entry {
     /// Creates an independent copy of this Entry in its current state
     fn fork(&self) -> Self {
         self.clone()
+    }
+
+    /// Return `false` if this `Entry` is empty
+    fn __bool__(&self) -> bool {
+        !self.inner.is_empty()
+    }
+
+    fn _digest(&self) -> u128 {
+        self.inner.digest()
     }
 }
 
@@ -186,7 +210,7 @@ impl Sketch {
         py.detach(|| self.inner.similarity(&other.inner))
     }
 
-    /// Return `False` if this Sketch is empty
+    /// Return `false` if this `Sketch` is empty
     fn __bool__(&self, py: Python<'_>) -> bool {
         self.cardinality(py) != 0.0
     }

@@ -7,13 +7,14 @@ repository = "https://github.com/lukaslueg/pyhyperminhash"
 description = "Fast, constant-memory cardinality approximation"
 readme = "README.md"
 license = "MIT"
+publish = false
 
 [lib]
 name = "pyhyperminhash"
 crate-type = ["cdylib"]
 
 [dependencies]
-hyperminhash = "0.2.1"
+hyperminhash = "0.2.2"
 pyo3 = { version = "0.27", default-features = false, features = ["extension-module", "macros"] }
 
 [build-dependencies]

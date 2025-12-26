@@ -1,3 +1,4 @@
+import io
 import pytest
 
 import pyhyperminhash
@@ -12,6 +13,13 @@ def sk() -> pyhyperminhash.Sketch:
     sk = pyhyperminhash.Sketch()
     assert not sk
     return sk
+
+
+@pytest.fixture
+def entry() -> pyhyperminhash.Entry:
+    e = pyhyperminhash.Entry()
+    assert not e
+    return e
 
 
 def test_module():
@@ -144,46 +152,47 @@ def test_from_iter():
     assert sk.cardinality() == approx(1000)
 
 
-def test_entry_unhashable():
-    e = pyhyperminhash.Entry()
+def test_entry_unhashable(entry: pyhyperminhash.Entry):
     with pytest.raises(TypeError):
-        hash(e)
+        hash(entry)
 
 
-def test_entry_add_unhashable():
-    e = pyhyperminhash.Entry()
+def test_entry_empty(entry: pyhyperminhash.Entry):
+    assert not entry
+    entry.add(42)
+    assert entry
+
+
+def test_entry_add_unhashable(entry: pyhyperminhash.Entry):
     with pytest.raises(TypeError):
-        e.add(set())  # type: ignore
+        entry.add(set())  # type: ignore
 
 
-def test_entry_add(sk: pyhyperminhash.Sketch):
-    e1 = pyhyperminhash.Entry()
-    e1.add("foo")
-    sk.add_entry(e1)
+def test_entry_add(sk: pyhyperminhash.Sketch, entry: pyhyperminhash.Entry):
+    entry.add("foo")
+    sk.add_entry(entry)
     ln = sk.cardinality()
     assert ln == approx(1)
-    sk.add_entry(e1)
+    sk.add_entry(entry)
     assert sk.cardinality() == ln
-    e1.add("foo")
-    sk.add_entry(e1)
+    entry.add("foo")
+    sk.add_entry(entry)
     assert sk.cardinality() == approx(2)
 
 
-def test_entry_eq():
-    e1 = pyhyperminhash.Entry()
+def test_entry_eq(entry: pyhyperminhash.Entry):
     e2 = pyhyperminhash.Entry()
-    assert e1 == e2
-    e1.add("foo")
-    assert e1 != e2
+    assert entry == e2
+    entry.add("foo")
+    assert entry != e2
     e2.add("foo")
-    assert e1 == e2
+    assert entry == e2
 
 
-def test_entry_fork(sk: pyhyperminhash.Sketch):
-    e1 = pyhyperminhash.Entry()
-    e1.add("foo")
+def test_entry_fork(sk: pyhyperminhash.Sketch, entry: pyhyperminhash.Entry):
+    entry.add("foo")
     for i in range(5):
-        e2 = e1.fork()
+        e2 = entry.fork()
         e2.add(i)
         sk.add_entry(e2)
     assert sk.cardinality() == approx(5)
@@ -195,3 +204,35 @@ def test_entry_fork(sk: pyhyperminhash.Sketch):
         e1.add(i)
         sk2.add_entry(e1)
     assert sk2.cardinality() == sk.cardinality()
+
+
+def test_entry_consistency(entry: pyhyperminhash.Entry):
+    entry.add("a")
+    entry.add("a")
+    e2 = pyhyperminhash.Entry()
+    e2.add("aa")
+    assert entry != e2
+
+    e1 = pyhyperminhash.Entry()
+    assert e1._digest() == 0x99AA06D3014798D86001C324468D497F
+    e1.add_bytes(b"a")
+    assert e1._digest() == 0xA96FAF705AF16834E6C632B61E964E1F
+    e1.add_bytes(b"a")
+    assert e1._digest() == 0xB9FE94D346D39B20369242A646A19333
+    e2 = pyhyperminhash.Entry()
+    e2.add_bytes(b"aa")
+    assert e2._digest() == 0xB9FE94D346D39B20369242A646A19333
+    assert e1 == e2
+
+    e3 = pyhyperminhash.Entry()
+    e3.add_bytes(b"x" * 8191)
+    e3.add_bytes(b"x")
+    assert e3._digest() == 0xA9F20AE68E5DCB2B9FDB0E2FF17FCC3C
+
+
+def test_entry_reader_consistency(entry: pyhyperminhash.Entry):
+    entry.add_reader(io.BytesIO(b"a"))
+    entry.add_reader(io.BytesIO(b"a"))
+    e2 = pyhyperminhash.Entry()
+    e2.add_reader(io.BytesIO(b"aa"))
+    assert entry == e2
