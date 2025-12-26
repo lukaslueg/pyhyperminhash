@@ -215,10 +215,10 @@ def test_entry_consistency(entry: pyhyperminhash.Entry):
 
     e1 = pyhyperminhash.Entry()
     assert e1._digest() == 0x99AA06D3014798D86001C324468D497F
-    assert repr(e1) == 'Entry(digest=99aa06d3014798d86001c324468d497f)'
+    assert repr(e1) == "Entry(digest=99aa06d3014798d86001c324468d497f)"
     e1.add_bytes(b"a")
     assert e1._digest() == 0xA96FAF705AF16834E6C632B61E964E1F
-    assert repr(e1) == 'Entry(digest=a96faf705af16834e6c632b61e964e1f)'
+    assert repr(e1) == "Entry(digest=a96faf705af16834e6c632b61e964e1f)"
     e1.add_bytes(b"a")
     assert e1._digest() == 0xB9FE94D346D39B20369242A646A19333
     e2 = pyhyperminhash.Entry()
