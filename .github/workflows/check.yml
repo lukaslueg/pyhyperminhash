@@ -7,7 +7,7 @@ jobs:
     name: rustfmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
@@ -17,7 +17,7 @@ jobs:
     name: cargo clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -32,7 +32,7 @@ jobs:
         features: ["--all-features", "--no-default-features"]
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.pyver }}
       - name: Create venv
@@ -42,7 +42,7 @@ jobs:
           set -e
           source .venv/bin/activate
           pip install --upgrade pip
-          pip install ruff
+          pip install mypy ruff
           ruff check --verbose
           ruff format --check --diff
       - uses: dtolnay/rust-toolchain@stable
@@ -59,6 +59,21 @@ jobs:
           pip install pyhyperminhash --find-links dist --force-reinstall
           pip install pytest
           RUST_BACKTRACE=1 pytest -v
+      - name: Run stubtest
+        run: |
+          set -e
+          source .venv/bin/activate
+          # The shipped stub describes the public package API at `pyhyperminhash`.
+          # The compiled extension submodule (`pyhyperminhash.pyhyperminhash`) is an
+          # implementation detail and does not ship a separate stub file.
+          python -m mypy.stubtest --ignore-missing-stub pyhyperminhash
+      - name: Check stub compatibility with oldest supported Python
+        run: |
+          set -e
+          source .venv/bin/activate
+          # Keep the stub valid for the declared Python 3.9+ support range; stubtest
+          # checks runtime parity, but not whether the annotations themselves are too new.
+          mypy --python-version 3.9 pyhyperminhash.pyi
       - name: Run examples
         run: |
           set -e

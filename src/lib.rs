@@ -31,7 +31,7 @@ impl std::io::Read for PyFileLikeObject {
 }
 
 // TODO The Box<> is a temporary fix for pyo3 #5714
-#[pyclass(eq)]
+#[pyclass(eq, skip_from_py_object)]
 #[derive(Clone, PartialEq)]
 struct Entry {
     inner: Box<hyperminhash::Entry>,

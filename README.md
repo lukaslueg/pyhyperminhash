@@ -35,7 +35,7 @@ sk2 &= sk  # sk2 now holds all elements that were in `sk` or `sk2`
 sk3 = pyhyperminhash.Sketch()
 sk3.add(42)
 sk3.add('Foo')
-assert sk3.intersection(sk1) > 0.0  # Approximately 1.0, due to `Foo`
+assert sk3.intersection(sk2) > 0.0  # Approximately 1.0, due to `Foo`
 ```
 
 ```python
