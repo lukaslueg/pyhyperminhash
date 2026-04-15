@@ -100,6 +100,16 @@ def test_add_reader():
     assert sk.add_reader(s) == 3
 
 
+def test_add_reader_rejects_oversized_reads():
+    class BadReader:
+        def read(self, n):
+            return b"x" * (n + 1)
+
+    sk = pyhyperminhash.Sketch()
+    with pytest.raises(Exception, match=r"read\(\d+\) returned \d+ bytes"):
+        sk.add_reader(BadReader())
+
+
 def test_load_and_save(sk: pyhyperminhash.Sketch):
     sk.add("foo")
     sk.add("bar")

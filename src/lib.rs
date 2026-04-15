@@ -18,6 +18,12 @@ impl std::io::Read for PyFileLikeObject {
             let bytes = bytes.extract::<std::borrow::Cow<[u8]>>().map_err(|err| {
                 std::io::Error::new(std::io::ErrorKind::InvalidInput, err.to_string())
             })?;
+            if bytes.len() > buf.len() {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!("read({}) returned {} bytes", buf.len(), bytes.len()),
+                ));
+            }
             buf[..bytes.len()].copy_from_slice(&bytes);
             Ok(bytes.len())
         })
