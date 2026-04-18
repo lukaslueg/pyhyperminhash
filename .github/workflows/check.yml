@@ -7,7 +7,7 @@ jobs:
     name: rustfmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
@@ -17,7 +17,7 @@ jobs:
     name: cargo clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -31,8 +31,8 @@ jobs:
         pyver: ["3.9", "3.13", "3.14"]
         features: ["--all-features", "--no-default-features"]
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v6.0.2
+      - uses: actions/setup-python@v6.2.0
         with:
           python-version: ${{ matrix.pyver }}
       - name: Create venv
@@ -49,7 +49,7 @@ jobs:
         with:
           components: clippy
       - name: Build wheels
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@v1.51.0
         with:
           args: --out dist ${{ matrix.features }}
       - name: Run pytest
