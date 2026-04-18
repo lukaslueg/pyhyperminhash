@@ -1,0 +1,41 @@
+name: PyPy compatibility
+
+on: [pull_request, push, workflow_dispatch]
+
+jobs:
+  pytest_pypy:
+    name: pytest_pypy (${{ matrix.pyver }}, ${{ matrix.features }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pyver: ["pypy3.11"]
+        features: ["--all-features", "--no-default-features"]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.pyver }}
+      - name: Create venv
+        run: python -m venv .venv
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build extension
+        run: |
+          set -e
+          source .venv/bin/activate
+          pip install --upgrade pip
+          pip install maturin
+          maturin develop ${{ matrix.features }}
+      - name: Run pytest
+        run: |
+          set -e
+          source .venv/bin/activate
+          pip install pytest
+          RUST_BACKTRACE=1 pytest -v
+      - name: Run examples
+        run: |
+          set -e
+          source .venv/bin/activate
+          python examples/simple.py
+          python examples/sqlite_agg.py
+          python examples/large_file.py
+          python examples/unique_files.py tests examples
