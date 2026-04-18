@@ -1,142 +1,291 @@
+from __future__ import annotations
+
 import io
-import typing
+import time
 
 import pyhyperminhash
 
-import simple
+try:
+    import pyperf
+except ImportError as exc:  # pragma: no cover - exercised manually
+    raise SystemExit(
+        "Install pyperf in the active environment first: pip install pyperf"
+    ) from exc
 
 
-def print_res(name: str, t: float, r: int, b: int | None = None) -> None:
-    if b is None:
-        print(f"{name}: {t:.1f} secs, {(r / t) / 1000:.1f} Kop/s")
-    else:
-        print(
-            f"{name}: {t:.1f} secs, {(r / t) / 1000:.1f} Kop/s, {(b / t) / 1024**2:.1f} Mb/s"
+def build_sketch(start: int, stop: int) -> pyhyperminhash.Sketch:
+    return pyhyperminhash.Sketch.from_iter(iter(range(start, stop)))
+
+
+class Fixtures:
+    def __init__(self) -> None:
+        self.add_object_values = tuple(f"foo{i}" for i in range(1024))
+        self.add_bytes_values = tuple(
+            i.to_bytes(2, "little") * 2048 for i in range(256)
+        )
+        self.from_iter_payload = tuple(f"foo{i}".encode() for i in range(10_000))
+
+        self.reader_payload = b"x" * (256 * 1024)
+        self.reader_chunks = tuple(
+            self.reader_payload[idx : idx + 4096]
+            for idx in range(0, len(self.reader_payload), 4096)
+        )
+
+        self.compare_left = build_sketch(0, 200_000)
+        self.compare_right = build_sketch(100_000, 300_000)
+
+        self.batch_left = build_sketch(0, 200_000)
+        self.batch_others = tuple(
+            build_sketch(offset * 25_000, offset * 25_000 + 200_000)
+            for offset in range(12)
+        )
+        self.large_batch_left = build_sketch(0, 50_000)
+        self.large_batch_others = tuple(
+            build_sketch(offset * 250, offset * 250 + 50_000) for offset in range(1000)
         )
 
 
-def bench(
-    name: str, r: int, f: typing.Callable, init: typing.Callable | None = None
-) -> None:
-    b = 0
-    with simple.timeit() as t:
-        for _ in range(r):
-            if init is not None:
-                b += f(init()) or 0
-            else:
-                b += f() or 0
-    print_res(name, t(), r, b or None)
+FIXTURES = Fixtures()
 
 
-def bench_cardinality():
-    sk = pyhyperminhash.Sketch()
-
-    def inner():
-        sk.cardinality()
-
-    bench("Sketch.cardinality", 500_000, inner)
-
-
-def bench_union():
-    sk = pyhyperminhash.Sketch.from_iter(iter(range(5_000_000)))
-    sk2 = pyhyperminhash.Sketch.from_iter(iter(range(1_000_000)))
-
-    def inner():
-        sk.union(sk2)
-
-    bench("Sketch.union", 500_000, inner)
+def time_add_values(loops: int, values: tuple[str, ...] | tuple[bytes, ...]) -> float:
+    sketch = pyhyperminhash.Sketch()
+    t0 = time.perf_counter()
+    for _ in range(loops):
+        for value in values:
+            sketch.add(value)
+    return time.perf_counter() - t0
 
 
-def bench_intersection():
-    sk = pyhyperminhash.Sketch.from_iter(iter(range(5_000_000)))
-    sk2 = pyhyperminhash.Sketch.from_iter(iter(range(1_000_000)))
-
-    def inner():
-        sk.intersection(sk2)
-
-    bench("Sketch.intersection", 50_000, inner)
+def time_from_iter(loops: int, payload: tuple[bytes, ...]) -> float:
+    t0 = time.perf_counter()
+    for _ in range(loops):
+        pyhyperminhash.Sketch.from_iter(iter(payload))
+    return time.perf_counter() - t0
 
 
-def bench_similarity():
-    sk = pyhyperminhash.Sketch.from_iter(iter(range(5_000_000)))
-    sk2 = pyhyperminhash.Sketch.from_iter(iter(range(1_000_000)))
-
-    def inner():
-        sk.similarity(sk2)
-
-    bench("Sketch.similarity", 50_000, inner)
+def time_add_reader(loops: int, payload: bytes) -> float:
+    sketch = pyhyperminhash.Sketch()
+    t0 = time.perf_counter()
+    for _ in range(loops):
+        sketch.add_reader(io.BytesIO(payload))
+    return time.perf_counter() - t0
 
 
-def bench_add():
-    sk = pyhyperminhash.Sketch()
-    bench("Sketch.add object", 10_000_000, lambda: sk.add("Foobar"))
+def time_entry_reader(loops: int, chunks: tuple[bytes, ...]) -> float:
+    sketch = pyhyperminhash.Sketch()
+    t0 = time.perf_counter()
+    for _ in range(loops):
+        entry = pyhyperminhash.Entry()
+        for chunk in chunks:
+            entry.add(chunk)
+        sketch.add_entry(entry)
+    return time.perf_counter() - t0
 
 
-def bench_bytes():
-    sk = pyhyperminhash.Sketch()
-    for obj, name, r in [
-        (b"x", "Sketch.add,   1 byte", 10_000_000),
-        (b"x" * 10, "Sketch.add,  10 bytes", 10_000_000),
-        (b"x" * 100, "Sketch.add, 100 bytes", 10_000_000),
-        (b"x" * 1024, "Sketch.add,  1 Kb", 5_000_000),
-        (b"x" * 16384, "Sketch.add, 16 Kb", 1_000_000),
-        (b"x" * 1024 * 1024, "Sketch.add,  1 Mb", 20_000),
-        (b"x" * 10 * 1024 * 1024, "Sketch.add, 10 Mb", 5_000),
-    ]:
-
-        def inner():
-            sk.add(obj)
-            return len(obj)
-
-        bench(name, r, inner)
+def time_pair_method(
+    loops: int,
+    left: pyhyperminhash.Sketch,
+    right: pyhyperminhash.Sketch,
+    method: str,
+    fast: bool,
+    batch_size: int,
+) -> float:
+    compare = getattr(left, method)
+    t0 = time.perf_counter()
+    for _ in range(loops):
+        for _ in range(batch_size):
+            compare(right, fast=fast)
+    return time.perf_counter() - t0
 
 
-def bench_entry_add():
-    sk = pyhyperminhash.Sketch()
+def time_many_method(
+    loops: int,
+    left: pyhyperminhash.Sketch,
+    others: tuple[pyhyperminhash.Sketch, ...],
+    method: str,
+    fast: bool,
+    batch_size: int,
+) -> float:
+    compare = getattr(left, method)
+    t0 = time.perf_counter()
+    for _ in range(loops):
+        for _ in range(batch_size):
+            compare(others, fast=fast)
+    return time.perf_counter() - t0
 
-    def inner(r):
-        e = pyhyperminhash.Entry()
-        i = 0
-        while buf := r.read(4096):
-            e.add(buf)
-            i += len(buf)
-        sk.add_entry(e)
-        return i
 
-    bench(
-        "Entry.add, manual reader",
-        10_000,
-        inner,
-        lambda: io.BytesIO(b"x" * 1024 * 1024),
+def time_many_loop(
+    loops: int,
+    left: pyhyperminhash.Sketch,
+    others: tuple[pyhyperminhash.Sketch, ...],
+    method: str,
+    fast: bool,
+    batch_size: int,
+) -> float:
+    compare = getattr(left, method)
+    t0 = time.perf_counter()
+    for _ in range(loops):
+        for _ in range(batch_size):
+            for other in others:
+                compare(other, fast=fast)
+    return time.perf_counter() - t0
+
+
+def register_benchmarks(runner: pyperf.Runner) -> None:
+    runner.metadata["pyhyperminhash_version"] = pyhyperminhash.__version__
+    runner.metadata["hyperminhash_version"] = pyhyperminhash.__hyperminhash_version__
+    runner.metadata["profile"] = pyhyperminhash.__profile__
+    runner.metadata["suite_style"] = "local chunked workloads"
+
+    runner.bench_time_func(
+        "Sketch.add object batch (1024 objects)",
+        time_add_values,
+        FIXTURES.add_object_values,
+        inner_loops=len(FIXTURES.add_object_values),
+    )
+    runner.bench_time_func(
+        "Sketch.add bytes batch (256 x 4KiB)",
+        time_add_values,
+        FIXTURES.add_bytes_values,
+        inner_loops=len(FIXTURES.add_bytes_values),
+    )
+    runner.bench_time_func(
+        "Sketch.from_iter (10k bytes input)",
+        time_from_iter,
+        FIXTURES.from_iter_payload,
+    )
+    runner.bench_time_func(
+        "Sketch.add_reader (256KiB)",
+        time_add_reader,
+        FIXTURES.reader_payload,
+    )
+    runner.bench_time_func(
+        "Entry.add + Sketch.add_entry (256KiB)",
+        time_entry_reader,
+        FIXTURES.reader_chunks,
+    )
+
+    runner.bench_time_func(
+        "Sketch.intersection (prepared pair)",
+        time_pair_method,
+        FIXTURES.compare_left,
+        FIXTURES.compare_right,
+        "intersection",
+        False,
+        1,
+    )
+    runner.bench_time_func(
+        "Sketch.intersection (prepared pair, fast=True, x64)",
+        time_pair_method,
+        FIXTURES.compare_left,
+        FIXTURES.compare_right,
+        "intersection",
+        True,
+        64,
+        inner_loops=64,
+    )
+    runner.bench_time_func(
+        "Sketch.similarity (prepared pair)",
+        time_pair_method,
+        FIXTURES.compare_left,
+        FIXTURES.compare_right,
+        "similarity",
+        False,
+        1,
+    )
+    runner.bench_time_func(
+        "Sketch.similarity (prepared pair, fast=True, x256)",
+        time_pair_method,
+        FIXTURES.compare_left,
+        FIXTURES.compare_right,
+        "similarity",
+        True,
+        256,
+        inner_loops=256,
+    )
+
+    runner.bench_time_func(
+        f"Sketch.similarity_many ({len(FIXTURES.batch_others)} sketches)",
+        time_many_method,
+        FIXTURES.batch_left,
+        FIXTURES.batch_others,
+        "similarity_many",
+        False,
+        1,
+    )
+    runner.bench_time_func(
+        f"Sketch.similarity loop ({len(FIXTURES.batch_others)} sketches)",
+        time_many_loop,
+        FIXTURES.batch_left,
+        FIXTURES.batch_others,
+        "similarity",
+        False,
+        1,
+    )
+    runner.bench_time_func(
+        f"Sketch.similarity_many ({len(FIXTURES.batch_others)} sketches, fast=True, x32)",
+        time_many_method,
+        FIXTURES.batch_left,
+        FIXTURES.batch_others,
+        "similarity_many",
+        True,
+        32,
+        inner_loops=32,
+    )
+    runner.bench_time_func(
+        f"Sketch.similarity loop ({len(FIXTURES.batch_others)} sketches, fast=True, x32)",
+        time_many_loop,
+        FIXTURES.batch_left,
+        FIXTURES.batch_others,
+        "similarity",
+        True,
+        32,
+        inner_loops=32,
+    )
+    runner.bench_time_func(
+        f"Sketch.similarity_many ({len(FIXTURES.large_batch_others)} sketches)",
+        time_many_method,
+        FIXTURES.large_batch_left,
+        FIXTURES.large_batch_others,
+        "similarity_many",
+        False,
+        1,
+    )
+    runner.bench_time_func(
+        f"Sketch.similarity loop ({len(FIXTURES.large_batch_others)} sketches)",
+        time_many_loop,
+        FIXTURES.large_batch_left,
+        FIXTURES.large_batch_others,
+        "similarity",
+        False,
+        1,
+    )
+    runner.bench_time_func(
+        f"Sketch.similarity_many ({len(FIXTURES.large_batch_others)} sketches, fast=True)",
+        time_many_method,
+        FIXTURES.large_batch_left,
+        FIXTURES.large_batch_others,
+        "similarity_many",
+        True,
+        1,
+    )
+    runner.bench_time_func(
+        f"Sketch.similarity loop ({len(FIXTURES.large_batch_others)} sketches, fast=True)",
+        time_many_loop,
+        FIXTURES.large_batch_left,
+        FIXTURES.large_batch_others,
+        "similarity",
+        True,
+        1,
     )
 
 
-def bench_reader():
-    sk = pyhyperminhash.Sketch()
-
-    def inner(r):
-        return sk.add_reader(r)
-
-    bench("Sketch.add_reader", 10_000, inner, lambda: io.BytesIO(b"x" * 1024 * 1024))
-
-
-def _main():
-    bench_cardinality()
-    print("---")
-    bench_union()
-    print("---")
-    bench_intersection()
-    print("---")
-    bench_similarity()
-    print("---")
-    bench_add()
-    print("---")
-    bench_bytes()
-    print("---")
-    bench_entry_add()
-    print("---")
-    bench_reader()
+def main() -> None:
+    runner = pyperf.Runner(processes=6, values=4, min_time=0.05)
+    runner.parse_args()
+    register_benchmarks(runner)
 
 
 if __name__ == "__main__":
-    _main()
+    main()

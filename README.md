@@ -148,6 +148,16 @@ Count lines                | 2.3 seconds     | _nil_           | 50,000,000 |
 `set()`                    | 14.99 seconds   | ~144 megabytes  | 1,048,576  |
 `Sketch.from_iter()`       | 1.8 seconds     | ~32 kilobytes   | 1,041,936  |
 
+For repeatable local benchmarks of the Python-facing API, use the `pyperf` suite:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+maturin develop -r
+pip install pyperf
+python3 examples/bench.py
+```
+
 ### FAQ
 
 * Can I extract an element that was previously added from a `Sketch`?
