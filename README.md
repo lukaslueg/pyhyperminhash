@@ -85,7 +85,8 @@ with open('complaints.txt', 'rb') as f:
     e.add(f.read(4096))
     sk.add_entry(e)  # This counts as one object
 
-sk1.add_entry(e)  # Entry-objects can be added to mulitple Sketches
+sk2 = pyhyperminhash.Sketch()
+sk2.add_entry(e)  # Entry-objects can be added to multiple Sketches
 
 # Entry-objects can be "forked" at the state they are currently at
 e2 = e.fork()
