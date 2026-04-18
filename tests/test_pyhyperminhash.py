@@ -189,8 +189,8 @@ def test_intersection_many():
     assert sk1.intersection_many(others) == [
         sk1.intersection(other) for other in others
     ]
-    assert sk1.intersection_many((other for other in others), fast=True) == [
-        sk1.intersection(other, fast=True) for other in others
+    assert sk1.intersection_many((other for other in others)) == [
+        sk1.intersection(other) for other in others
     ]
 
 
@@ -203,9 +203,20 @@ def test_similarity_many():
     ]
 
     assert sk1.similarity_many(others) == [sk1.similarity(other) for other in others]
-    assert sk1.similarity_many((other for other in others), fast=True) == [
-        sk1.similarity(other, fast=True) for other in others
+    assert sk1.similarity_many((other for other in others)) == [
+        sk1.similarity(other) for other in others
     ]
+
+
+def test_many_does_not_accept_fast():
+    sk1 = pyhyperminhash.Sketch()
+    sk2 = pyhyperminhash.Sketch()
+
+    with pytest.raises(TypeError):
+        sk1.intersection_many([sk2], fast=True)  # type: ignore[call-arg]
+
+    with pytest.raises(TypeError):
+        sk1.similarity_many([sk2], fast=True)  # type: ignore[call-arg]
 
 
 def test_many_requires_sketches(sk: pyhyperminhash.Sketch):

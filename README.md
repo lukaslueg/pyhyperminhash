@@ -45,9 +45,7 @@ assert sk3.similarity(sk2, fast=True) > 0.0
 # Compare one Sketch against many others
 others = [sk, sk2, sk3]
 assert sk3.intersection_many(others) == [sk3.intersection(other) for other in others]
-assert sk3.similarity_many(others, fast=True) == [
-    sk3.similarity(other, fast=True) for other in others
-]
+assert sk3.similarity_many(others) == [sk3.similarity(other) for other in others]
 ```
 
 ```python

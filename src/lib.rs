@@ -251,45 +251,17 @@ impl Sketch {
     }
 
     /// Compare this Sketch against many other Sketches.
-    ///
-    /// Pass `fast=True` to use the batched variant of upstream `Sketch::intersection_fast()`.
-    /// This uses the same looser correction model as `intersection(..., fast=True)`.
-    #[pyo3(signature=(others, /, *, fast=false))]
-    fn intersection_many(
-        &self,
-        py: Python<'_>,
-        others: &Bound<'_, PyAny>,
-        fast: bool,
-    ) -> PyResult<Vec<f64>> {
+    #[pyo3(signature=(others, /))]
+    fn intersection_many(&self, py: Python<'_>, others: &Bound<'_, PyAny>) -> PyResult<Vec<f64>> {
         let others = extract_sketches(others)?;
-        Ok(py.detach(|| {
-            if fast {
-                self.inner.intersection_many_fast(others.iter()).collect()
-            } else {
-                self.inner.intersection_many(others.iter()).collect()
-            }
-        }))
+        Ok(py.detach(|| self.inner.intersection_many(others.iter()).collect()))
     }
 
     /// Compare this Sketch against many other Sketches using the Jaccard Index.
-    ///
-    /// Pass `fast=True` to use the batched variant of upstream `Sketch::similarity_fast()`.
-    /// This uses the same slightly looser correction model as `similarity(..., fast=True)`.
-    #[pyo3(signature=(others, /, *, fast=false))]
-    fn similarity_many(
-        &self,
-        py: Python<'_>,
-        others: &Bound<'_, PyAny>,
-        fast: bool,
-    ) -> PyResult<Vec<f64>> {
+    #[pyo3(signature=(others, /))]
+    fn similarity_many(&self, py: Python<'_>, others: &Bound<'_, PyAny>) -> PyResult<Vec<f64>> {
         let others = extract_sketches(others)?;
-        Ok(py.detach(|| {
-            if fast {
-                self.inner.similarity_many_fast(others.iter()).collect()
-            } else {
-                self.inner.similarity_many(others.iter()).collect()
-            }
-        }))
+        Ok(py.detach(|| self.inner.similarity_many(others.iter()).collect()))
     }
 
     /// Return `false` if this `Sketch` is empty

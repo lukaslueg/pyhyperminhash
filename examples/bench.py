@@ -104,14 +104,13 @@ def time_many_method(
     left: pyhyperminhash.Sketch,
     others: tuple[pyhyperminhash.Sketch, ...],
     method: str,
-    fast: bool,
     batch_size: int,
 ) -> float:
     compare = getattr(left, method)
     t0 = time.perf_counter()
     for _ in range(loops):
         for _ in range(batch_size):
-            compare(others, fast=fast)
+            compare(others)
     return time.perf_counter() - t0
 
 
@@ -211,7 +210,6 @@ def register_benchmarks(runner: pyperf.Runner) -> None:
         FIXTURES.batch_left,
         FIXTURES.batch_others,
         "similarity_many",
-        False,
         1,
     )
     runner.bench_time_func(
@@ -229,17 +227,6 @@ def register_benchmarks(runner: pyperf.Runner) -> None:
         FIXTURES.batch_left,
         FIXTURES.batch_others,
         "similarity_many",
-        True,
-        32,
-        inner_loops=32,
-    )
-    runner.bench_time_func(
-        f"Sketch.similarity loop ({len(FIXTURES.batch_others)} sketches, fast=True, x32)",
-        time_many_loop,
-        FIXTURES.batch_left,
-        FIXTURES.batch_others,
-        "similarity",
-        True,
         32,
         inner_loops=32,
     )
@@ -249,7 +236,6 @@ def register_benchmarks(runner: pyperf.Runner) -> None:
         FIXTURES.large_batch_left,
         FIXTURES.large_batch_others,
         "similarity_many",
-        False,
         1,
     )
     runner.bench_time_func(
@@ -259,15 +245,6 @@ def register_benchmarks(runner: pyperf.Runner) -> None:
         FIXTURES.large_batch_others,
         "similarity",
         False,
-        1,
-    )
-    runner.bench_time_func(
-        f"Sketch.similarity_many ({len(FIXTURES.large_batch_others)} sketches, fast=True)",
-        time_many_method,
-        FIXTURES.large_batch_left,
-        FIXTURES.large_batch_others,
-        "similarity_many",
-        True,
         1,
     )
     runner.bench_time_func(
