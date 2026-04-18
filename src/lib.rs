@@ -313,12 +313,12 @@ impl Sketch {
     }
 
     /// Same as `.union`
-    fn __iand__(&mut self, other: &Self) {
+    fn __ior__(&mut self, other: &Self) {
         self.union(other);
     }
 
     /// Same as `.union`, but creating a new Sketch in the process
-    fn __and__(&self, py: Python<'_>, other: &Self) -> Self {
+    fn __or__(&self, py: Python<'_>, other: &Self) -> Self {
         py.detach(|| {
             let mut inner = self.inner.clone();
             inner.union(&other.inner);

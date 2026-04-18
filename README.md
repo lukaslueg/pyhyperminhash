@@ -30,7 +30,7 @@ assert int(sk) == len(sk)  # Approximately 3
 
 sk2 = pyhyperminhash.Sketch()
 sk2.add('Foobar')
-sk2 &= sk  # sk2 now holds all elements that were in `sk` or `sk2`
+sk2 |= sk  # sk2 now holds all elements that were in `sk` or `sk2`
 
 sk3 = pyhyperminhash.Sketch()
 sk3.add(42)

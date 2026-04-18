@@ -149,10 +149,19 @@ def test_union(sk: pyhyperminhash.Sketch):
     for i in range(50, 150):
         sk2.add(b"foo %i" % (i,))
         sk2.add(b"foo1 %i" % (i,))
-    sk3 = sk & sk2
+    sk3 = sk | sk2
     assert sk3.cardinality() == approx(250)
-    sk &= sk2
+    sk |= sk2
     assert len(sk) == len(sk3)
+
+
+def test_and_operator_not_supported(sk: pyhyperminhash.Sketch):
+    sk2 = pyhyperminhash.Sketch()
+    with pytest.raises(TypeError):
+        sk & sk2  # type: ignore[operator]
+
+    with pytest.raises(TypeError):
+        sk &= sk2  # type: ignore[operator]
 
 
 def test_similarity():
