@@ -23,3 +23,6 @@ Homepage = "https://github.com/lukaslueg/pyhyperminhash"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
+
+[tool.maturin.generate-ci.github]
+pytest = true
