@@ -30,6 +30,15 @@ impl std::io::Read for PyFileLikeObject {
     }
 }
 
+fn extract_sketches(src: &Bound<'_, PyAny>) -> PyResult<Vec<hyperminhash::Sketch>> {
+    let mut sketches = Vec::new();
+    for maybe_obj in src.try_iter()? {
+        let sketch = maybe_obj?.extract::<PyRef<'_, Sketch>>()?;
+        sketches.push(sketch.inner.clone());
+    }
+    Ok(sketches)
+}
+
 // TODO The Box<> is a temporary fix for pyo3 #5714
 #[pyclass(eq, skip_from_py_object)]
 #[derive(Clone, PartialEq)]
@@ -208,16 +217,79 @@ impl Sketch {
         self.inner.union(&other.inner);
     }
 
-    /// Compute the estimated number of unique objects that are present in both Sketches
-    #[pyo3(signature=(other, /))]
-    fn intersection(&mut self, py: Python<'_>, other: &Self) -> f64 {
-        py.detach(|| self.inner.intersection(&other.inner))
+    /// Compute the estimated number of unique objects that are present in both Sketches.
+    ///
+    /// Pass `fast=True` to use the faster estimate with the same looser correction model as
+    /// upstream `Sketch::intersection_fast()`. In sampled inputs across the small-cardinality
+    /// range, the resulting drift is typically tiny.
+    #[pyo3(signature=(other, /, *, fast=false))]
+    fn intersection(&self, py: Python<'_>, other: &Self, fast: bool) -> f64 {
+        py.detach(|| {
+            if fast {
+                self.inner.intersection_fast(&other.inner)
+            } else {
+                self.inner.intersection(&other.inner)
+            }
+        })
     }
 
-    /// The Jaccard Index similarity estimation
-    #[pyo3(signature=(other, /))]
-    fn similarity(&self, py: Python<'_>, other: &Self) -> f64 {
-        py.detach(|| self.inner.similarity(&other.inner))
+    /// The Jaccard Index similarity estimation.
+    ///
+    /// Pass `fast=True` to use the faster estimate with a slightly looser correction model as
+    /// upstream `Sketch::similarity_fast()`. In sampled inputs across the small-cardinality range
+    /// where this differs from the precise method, the absolute drift stayed below `1.3e-5`
+    /// upstream.
+    #[pyo3(signature=(other, /, *, fast=false))]
+    fn similarity(&self, py: Python<'_>, other: &Self, fast: bool) -> f64 {
+        py.detach(|| {
+            if fast {
+                self.inner.similarity_fast(&other.inner)
+            } else {
+                self.inner.similarity(&other.inner)
+            }
+        })
+    }
+
+    /// Compare this Sketch against many other Sketches.
+    ///
+    /// Pass `fast=True` to use the batched variant of upstream `Sketch::intersection_fast()`.
+    /// This uses the same looser correction model as `intersection(..., fast=True)`.
+    #[pyo3(signature=(others, /, *, fast=false))]
+    fn intersection_many(
+        &self,
+        py: Python<'_>,
+        others: &Bound<'_, PyAny>,
+        fast: bool,
+    ) -> PyResult<Vec<f64>> {
+        let others = extract_sketches(others)?;
+        Ok(py.detach(|| {
+            if fast {
+                self.inner.intersection_many_fast(others.iter()).collect()
+            } else {
+                self.inner.intersection_many(others.iter()).collect()
+            }
+        }))
+    }
+
+    /// Compare this Sketch against many other Sketches using the Jaccard Index.
+    ///
+    /// Pass `fast=True` to use the batched variant of upstream `Sketch::similarity_fast()`.
+    /// This uses the same slightly looser correction model as `similarity(..., fast=True)`.
+    #[pyo3(signature=(others, /, *, fast=false))]
+    fn similarity_many(
+        &self,
+        py: Python<'_>,
+        others: &Bound<'_, PyAny>,
+        fast: bool,
+    ) -> PyResult<Vec<f64>> {
+        let others = extract_sketches(others)?;
+        Ok(py.detach(|| {
+            if fast {
+                self.inner.similarity_many_fast(others.iter()).collect()
+            } else {
+                self.inner.similarity_many(others.iter()).collect()
+            }
+        }))
     }
 
     /// Return `false` if this `Sketch` is empty

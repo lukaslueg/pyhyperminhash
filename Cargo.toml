@@ -14,7 +14,7 @@ name = "pyhyperminhash"
 crate-type = ["cdylib"]
 
 [dependencies]
-hyperminhash = "0.2.2"
+hyperminhash = "0.2.3"
 pyo3 = { version = "0.28", default-features = false, features = ["extension-module", "macros"] }
 
 [build-dependencies]

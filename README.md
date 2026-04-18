@@ -36,6 +36,18 @@ sk3 = pyhyperminhash.Sketch()
 sk3.add(42)
 sk3.add('Foo')
 assert sk3.intersection(sk2) > 0.0  # Approximately 1.0, due to `Foo`
+
+# `fast=True` uses the faster upstream estimate with a slightly looser
+# correction model; for most inputs the difference is tiny.
+assert sk3.intersection(sk2, fast=True) > 0.0
+assert sk3.similarity(sk2, fast=True) > 0.0
+
+# Compare one Sketch against many others
+others = [sk, sk2, sk3]
+assert sk3.intersection_many(others) == [sk3.intersection(other) for other in others]
+assert sk3.similarity_many(others, fast=True) == [
+    sk3.similarity(other, fast=True) for other in others
+]
 ```
 
 ```python

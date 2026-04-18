@@ -70,9 +70,9 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
 name = "hyperminhash"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afa40a6779e8bcbc8f1f60ffe26be4a28ea4ad5ad87fffa915d75ca32279cfd9"
+checksum = "74b6fd2ffa7fbb0fa4cb305f751e01c9eb474330be931bdc77a917e3f28d1f80"
 dependencies = [
  "xxhash-rust",
 ]

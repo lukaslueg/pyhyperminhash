@@ -133,6 +133,13 @@ def test_intersection(sk: pyhyperminhash.Sketch):
         sk2.add(b"foo %i" % (i,))
         sk2.add(b"foo1 %i" % (i,))
     assert sk.intersection(sk2) == approx(5000)
+    assert sk.intersection(sk2, fast=True) == approx(5000)
+
+
+def test_intersection_fast_is_keyword_only(sk: pyhyperminhash.Sketch):
+    sk2 = pyhyperminhash.Sketch()
+    with pytest.raises(TypeError):
+        sk.intersection(sk2, True)  # type: ignore[call-arg]
 
 
 def test_union(sk: pyhyperminhash.Sketch):
@@ -152,6 +159,52 @@ def test_similarity():
     sk1 = pyhyperminhash.Sketch.from_iter(iter(range(0, 10_000)))
     sk2 = pyhyperminhash.Sketch.from_iter(iter(range(5_000, 15_000)))
     assert sk1.similarity(sk2) == approx(5_000.0 / 15_000.0)
+    assert sk1.similarity(sk2, fast=True) == approx(5_000.0 / 15_000.0)
+
+
+def test_similarity_fast_is_keyword_only():
+    sk1 = pyhyperminhash.Sketch()
+    sk2 = pyhyperminhash.Sketch()
+    with pytest.raises(TypeError):
+        sk1.similarity(sk2, True)  # type: ignore[call-arg]
+
+
+def test_intersection_many():
+    sk1 = pyhyperminhash.Sketch.from_iter(iter(range(0, 10_000)))
+    others = [
+        pyhyperminhash.Sketch.from_iter(iter(range(5_000, 15_000))),
+        pyhyperminhash.Sketch.from_iter(iter(range(8_000, 12_000))),
+        pyhyperminhash.Sketch.from_iter(iter(range(20_000, 21_000))),
+    ]
+
+    assert sk1.intersection_many(others) == [
+        sk1.intersection(other) for other in others
+    ]
+    assert sk1.intersection_many((other for other in others), fast=True) == [
+        sk1.intersection(other, fast=True) for other in others
+    ]
+
+
+def test_similarity_many():
+    sk1 = pyhyperminhash.Sketch.from_iter(iter(range(0, 10_000)))
+    others = [
+        pyhyperminhash.Sketch.from_iter(iter(range(5_000, 15_000))),
+        pyhyperminhash.Sketch.from_iter(iter(range(8_000, 12_000))),
+        pyhyperminhash.Sketch.from_iter(iter(range(20_000, 21_000))),
+    ]
+
+    assert sk1.similarity_many(others) == [sk1.similarity(other) for other in others]
+    assert sk1.similarity_many((other for other in others), fast=True) == [
+        sk1.similarity(other, fast=True) for other in others
+    ]
+
+
+def test_many_requires_sketches(sk: pyhyperminhash.Sketch):
+    with pytest.raises(TypeError):
+        sk.intersection_many([object()])  # type: ignore[list-item]
+
+    with pytest.raises(TypeError):
+        sk.similarity_many(1)  # type: ignore[arg-type]
 
 
 def test_from_iter():
