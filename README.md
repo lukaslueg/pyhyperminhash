@@ -11,9 +11,15 @@ the instance's lifetime. Unlike e.g. when using a `set`, the memory consumed by 
 `Sketch`-instance does _not_ grow as elements are added; each `Sketch`-instance
 consumes approximately 32kb of memory, independent of the number of elements.
 
-```python
-# Basic usage
+### Installation
 
+```bash
+pip install pyhyperminhash
+```
+
+### Basic usage
+
+```python
 # Construct an empty Sketch
 sk = pyhyperminhash.Sketch()
 assert not sk  # The Sketch is empty
