@@ -8,6 +8,21 @@ description = "Fast, constant-memory cardinality approximation"
 readme = "README.md"
 license = "MIT"
 publish = false
+include = [
+    "/Cargo.toml",
+    "/Cargo.lock",
+    "/LICENSE",
+    "/README.md",
+    "/build.rs",
+    "/pyproject.toml",
+    "/pyhyperminhash.pyi",
+    "/src/**",
+    "/tests/**",
+    "/examples/**",
+    "!**/__pycache__/",
+    "!**/__pycache__/**",
+    "!**/*.py[cod]",
+]
 
 [lib]
 name = "pyhyperminhash"
