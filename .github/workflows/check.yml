@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        pyver: ["3.12", "3.13", "3.14"]
+        pyver: ["3.11", "3.13", "3.14"]
         features: ["--all-features", "--no-default-features"]
     steps:
       - uses: actions/checkout@v6.0.2
@@ -71,9 +71,9 @@ jobs:
         run: |
           set -e
           source .venv/bin/activate
-          # Keep the stub valid for the declared Python 3.12+ support range; stubtest
+          # Keep the stub valid for the declared Python 3.11+ support range; stubtest
           # checks runtime parity, but not whether the annotations themselves are too new.
-          mypy --python-version 3.12 pyhyperminhash.pyi
+          mypy --python-version 3.11 pyhyperminhash.pyi
       - name: Run examples
         run: |
           set -e
