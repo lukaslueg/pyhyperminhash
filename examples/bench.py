@@ -222,15 +222,6 @@ def register_benchmarks(runner: pyperf.Runner) -> None:
         1,
     )
     runner.bench_time_func(
-        f"Sketch.similarity_many ({len(FIXTURES.batch_others)} sketches, fast=True, x32)",
-        time_many_method,
-        FIXTURES.batch_left,
-        FIXTURES.batch_others,
-        "similarity_many",
-        32,
-        inner_loops=32,
-    )
-    runner.bench_time_func(
         f"Sketch.similarity_many ({len(FIXTURES.large_batch_others)} sketches)",
         time_many_method,
         FIXTURES.large_batch_left,
