@@ -226,10 +226,7 @@ impl Sketch {
     /// Read a file-like object and add it to this Sketch
     #[pyo3(signature=(src, /))]
     fn add_reader(&mut self, py: Python<'_>, src: Py<PyAny>) -> PyResult<u64> {
-        let mut e = Entry::new();
-        let r = e.add_reader(py, src)?;
-        self.add_entry(&e);
-        Ok(r)
+        Ok(py.detach(|| self.inner.add_reader(PyFileLikeObject(src)))?)
     }
 
     #[pyo3(signature=(entry, /))]
