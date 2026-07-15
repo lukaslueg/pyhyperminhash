@@ -218,6 +218,20 @@ impl Sketch {
         Ok(())
     }
 
+    /// Add one bytes object using one-shot XXH3 hashing.
+    ///
+    /// This is faster than `.add()` for bytes, but intentionally uses the raw-byte digest also
+    /// used by `.add_reader()` and `Entry.add_bytes()`, rather than Rust's framed `Hash` digest.
+    #[pyo3(signature=(obj, /))]
+    fn add_bytes(&mut self, obj: &Bound<'_, PyBytes>) {
+        let b = obj.as_bytes();
+        if b.len() >= GIL_BUFFER_THRESHOLD {
+            obj.py().detach(|| self.inner.add_bytes(b));
+        } else {
+            self.inner.add_bytes(b);
+        }
+    }
+
     fn __iadd__(&mut self, obj: &Bound<'_, PyAny>) -> PyResult<()> {
         self.add(obj)
     }

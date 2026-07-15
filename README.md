@@ -108,6 +108,10 @@ probably randomizes hash-values at interpreter-startup (in order to prevent cert
 of DOS-attacks). The randomness introduced here means that the count-approximation provided
 by this package may not be stable from run to run.
 
+For byte-only workloads, `Sketch.add_bytes()` uses the faster one-shot raw-byte hash. Its
+digest identity matches `Sketch.add_reader()` and a one-part `Entry.add_bytes()`, but differs
+from `Sketch.add(bytes)`, which retains the framed `Hash` identity used by `Entry.add(bytes)`.
+
 See the documentation for the underlying [implementation](https://docs.rs/hyperminhash) for additional information.
 
 ### Usage as a sqlite3 aggregate function

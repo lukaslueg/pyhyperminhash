@@ -90,6 +90,22 @@ def test_add_bytes(sk: pyhyperminhash.Sketch):
     assert sk.cardinality() == approx(999)
 
 
+@pytest.mark.parametrize("value", [b"", b"a", b"x" * 4096])
+def test_sketch_add_bytes_matches_other_raw_byte_paths(value: bytes):
+    direct = pyhyperminhash.Sketch()
+    direct.add_bytes(value)
+
+    entry = pyhyperminhash.Entry()
+    entry.add_bytes(value)
+    through_entry = pyhyperminhash.Sketch()
+    through_entry.add_entry(entry)
+
+    through_reader = pyhyperminhash.Sketch()
+    assert through_reader.add_reader(io.BytesIO(value)) == len(value)
+
+    assert direct == through_entry == through_reader
+
+
 def test_add_matches_entry_path_for_mixed_workload():
     direct = pyhyperminhash.Sketch()
     through_entries = pyhyperminhash.Sketch()

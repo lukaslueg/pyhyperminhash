@@ -48,12 +48,17 @@ class Fixtures:
 FIXTURES = Fixtures()
 
 
-def time_add_values(loops: int, values: tuple[str, ...] | tuple[bytes, ...]) -> float:
+def time_add_values(
+    loops: int,
+    values: tuple[str, ...] | tuple[bytes, ...],
+    method: str,
+) -> float:
     sketch = pyhyperminhash.Sketch()
+    add = getattr(sketch, method)
     t0 = time.perf_counter()
     for _ in range(loops):
         for value in values:
-            sketch.add(value)
+            add(value)
     return time.perf_counter() - t0
 
 
@@ -141,12 +146,21 @@ def register_benchmarks(runner: pyperf.Runner) -> None:
         "Sketch.add object batch (1024 objects)",
         time_add_values,
         FIXTURES.add_object_values,
+        "add",
         inner_loops=len(FIXTURES.add_object_values),
     )
     runner.bench_time_func(
-        "Sketch.add bytes batch (256 x 4KiB)",
+        "Sketch.add(bytes) batch (256 x 4KiB)",
         time_add_values,
         FIXTURES.add_bytes_values,
+        "add",
+        inner_loops=len(FIXTURES.add_bytes_values),
+    )
+    runner.bench_time_func(
+        "Sketch.add_bytes(bytes) batch (256 x 4KiB)",
+        time_add_values,
+        FIXTURES.add_bytes_values,
+        "add_bytes",
         inner_loops=len(FIXTURES.add_bytes_values),
     )
     runner.bench_time_func(
