@@ -90,6 +90,65 @@ def test_add_bytes(sk: pyhyperminhash.Sketch):
     assert sk.cardinality() == approx(999)
 
 
+def test_add_matches_entry_path_for_mixed_workload():
+    direct = pyhyperminhash.Sketch()
+    through_entries = pyhyperminhash.Sketch()
+
+    for i in range(2000):
+        for value in (i, f"value-{i}", i.to_bytes(8, "little")):
+            direct.add(value)
+
+            entry = pyhyperminhash.Entry()
+            entry.add(value)
+            through_entries.add_entry(entry)
+
+    assert direct == through_entries
+    assert direct.cardinality() == approx(6000)
+
+
+def test_add_preserves_raw_byte_sequence_entropy():
+    class ByteSequence:
+        def __init__(self, value: bytes):
+            self.value = value
+
+        def __len__(self):
+            return len(self.value)
+
+        def __getitem__(self, index):
+            return self.value[index]
+
+        def __hash__(self):
+            return 0
+
+    first = ByteSequence(b"first byte sequence")
+    second = ByteSequence(b"second byte sequence")
+    assert hash(first) == hash(second)
+
+    sk = pyhyperminhash.Sketch()
+    sk.add(first)
+    sk.add(second)
+    assert sk.cardinality() == approx(2)
+
+
+def test_add_equivalent_byte_representations_match():
+    value = bytes(range(16))
+    equivalents = (
+        value,
+        bytearray(value),
+        memoryview(value),
+        tuple(value),
+        range(16),
+    )
+
+    expected = pyhyperminhash.Sketch()
+    expected.add(value)
+
+    for equivalent in equivalents:
+        actual = pyhyperminhash.Sketch()
+        actual.add(equivalent)
+        assert actual == expected
+
+
 def test_add_reader():
     import io
 

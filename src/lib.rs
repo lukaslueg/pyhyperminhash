@@ -1,4 +1,6 @@
 use pyo3::prelude::*;
+use pyo3::types::{PyBytes, PyString};
+use std::borrow::Cow;
 
 pub mod built_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
@@ -37,6 +39,29 @@ fn extract_sketches(src: &Bound<'_, PyAny>) -> PyResult<Vec<hyperminhash::Sketch
         sketches.push(sketch.inner.clone());
     }
     Ok(sketches)
+}
+
+#[inline]
+fn is_python_sequence(obj: &Bound<'_, PyAny>) -> bool {
+    // SAFETY: `Bound` guarantees a valid Python object bound to the currently
+    // attached interpreter. `PySequence_Check` accepts any valid `PyObject`
+    // pointer and neither retains nor mutates it.
+    unsafe { pyo3::ffi::PySequence_Check(obj.as_ptr()) != 0 }
+}
+
+fn extract_byte_sequence<'a>(obj: &'a Bound<'_, PyAny>) -> Option<Cow<'a, [u8]>> {
+    if let Ok(bytes) = obj.cast::<PyBytes>() {
+        return Some(Cow::Borrowed(bytes.as_bytes()));
+    }
+
+    // `Cow<[u8]>` extraction rejects strings before trying the sequence
+    // protocol. Preserve that behavior without constructing a temporary
+    // Python exception for the normal hash fallback.
+    if obj.is_instance_of::<PyString>() || !is_python_sequence(obj) {
+        return None;
+    }
+
+    obj.extract::<Vec<u8>>().ok().map(Cow::Owned)
 }
 
 // TODO The Box<> is a temporary fix for pyo3 #5714
@@ -79,7 +104,7 @@ impl Entry {
     /// Add any object to this `Entry` using the object's `hash()`.
     #[pyo3(signature=(obj, /))]
     fn add(&mut self, obj: &Bound<'_, PyAny>) -> PyResult<()> {
-        if let Ok(b) = obj.extract::<std::borrow::Cow<[u8]>>() {
+        if let Some(b) = extract_byte_sequence(obj) {
             if b.len() >= GIL_BUFFER_THRESHOLD {
                 obj.py().detach(|| self.inner.add(b));
             } else {
@@ -182,9 +207,15 @@ impl Sketch {
     /// Add any object to this Sketch using the object's `hash()`
     #[pyo3(signature=(obj, /))]
     fn add(&mut self, obj: &Bound<'_, PyAny>) -> PyResult<()> {
-        let mut e = Entry::new();
-        e.add(obj)?;
-        self.add_entry(&e);
+        if let Some(b) = extract_byte_sequence(obj) {
+            if b.len() >= GIL_BUFFER_THRESHOLD {
+                obj.py().detach(|| self.inner.add(b));
+            } else {
+                self.inner.add(b);
+            }
+        } else {
+            self.inner.add(obj.hash()?);
+        }
         Ok(())
     }
 
