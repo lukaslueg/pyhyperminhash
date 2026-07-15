@@ -28,6 +28,11 @@ include = [
 name = "pyhyperminhash"
 crate-type = ["cdylib"]
 
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+
 [dependencies]
 hyperminhash = "0.2.4"
 pyo3 = { version = "0.29", default-features = false, features = ["extension-module", "macros"] }
