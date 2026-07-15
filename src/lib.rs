@@ -32,11 +32,10 @@ impl std::io::Read for PyFileLikeObject {
     }
 }
 
-fn extract_sketches(src: &Bound<'_, PyAny>) -> PyResult<Vec<hyperminhash::Sketch>> {
+fn extract_sketches(src: &Bound<'_, PyAny>) -> PyResult<Vec<Py<Sketch>>> {
     let mut sketches = Vec::new();
     for maybe_obj in src.try_iter()? {
-        let sketch = maybe_obj?.extract::<PyRef<'_, Sketch>>()?;
-        sketches.push(sketch.inner.clone());
+        sketches.push(maybe_obj?.extract()?);
     }
     Ok(sketches)
 }
@@ -282,14 +281,24 @@ impl Sketch {
     #[pyo3(signature=(others, /))]
     fn intersection_many(&self, py: Python<'_>, others: &Bound<'_, PyAny>) -> PyResult<Vec<f64>> {
         let others = extract_sketches(others)?;
-        Ok(py.detach(|| self.inner.intersection_many(others.iter()).collect()))
+        let guards = others
+            .iter()
+            .map(|sketch| sketch.bind(py).try_borrow())
+            .collect::<Result<Vec<_>, _>>()?;
+        let inners = guards.iter().map(|sketch| &sketch.inner).collect::<Vec<_>>();
+        Ok(py.detach(move || self.inner.intersection_many(inners).collect()))
     }
 
     /// Compare this Sketch against many other Sketches using the Jaccard Index.
     #[pyo3(signature=(others, /))]
     fn similarity_many(&self, py: Python<'_>, others: &Bound<'_, PyAny>) -> PyResult<Vec<f64>> {
         let others = extract_sketches(others)?;
-        Ok(py.detach(|| self.inner.similarity_many(others.iter()).collect()))
+        let guards = others
+            .iter()
+            .map(|sketch| sketch.bind(py).try_borrow())
+            .collect::<Result<Vec<_>, _>>()?;
+        let inners = guards.iter().map(|sketch| &sketch.inner).collect::<Vec<_>>();
+        Ok(py.detach(move || self.inner.similarity_many(inners).collect()))
     }
 
     /// Return `false` if this `Sketch` is empty

@@ -265,6 +265,22 @@ def test_similarity_many():
     assert sk1.similarity_many((other for other in others)) == [
         sk1.similarity(other) for other in others
     ]
+    assert sk1.similarity_many([sk1, sk1]) == [1.0, 1.0]
+
+
+def test_many_accepts_temporary_sketches():
+    sk = pyhyperminhash.Sketch.from_iter(iter(range(0, 10_000)))
+    ranges = [(5_000, 15_000), (8_000, 12_000), (20_000, 21_000)]
+
+    def temporary_sketches():
+        for start, stop in ranges:
+            yield pyhyperminhash.Sketch.from_iter(iter(range(start, stop)))
+
+    expected = [
+        sk.similarity(pyhyperminhash.Sketch.from_iter(iter(range(start, stop))))
+        for start, stop in ranges
+    ]
+    assert sk.similarity_many(temporary_sketches()) == expected
 
 
 def test_many_does_not_accept_fast():
