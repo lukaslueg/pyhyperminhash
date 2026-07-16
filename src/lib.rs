@@ -316,8 +316,8 @@ impl Sketch {
     }
 
     /// Return `false` if this `Sketch` is empty
-    fn __bool__(&self, py: Python<'_>) -> bool {
-        self.cardinality(py) != 0.0
+    fn __bool__(&self) -> bool {
+        !self.inner.is_empty()
     }
 
     /// Same as `.cardinality()`, rounded to an `int`

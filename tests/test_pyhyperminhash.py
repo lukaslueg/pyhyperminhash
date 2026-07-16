@@ -39,6 +39,12 @@ def test_constructor(sk: pyhyperminhash.Sketch):
     assert int(sk) == 0
 
 
+def test_sketch_empty(sk: pyhyperminhash.Sketch):
+    assert not sk
+    sk.add(42)
+    assert sk
+
+
 def test_eq(sk: pyhyperminhash.Sketch):
     sk2 = pyhyperminhash.Sketch()
     assert sk == sk2
