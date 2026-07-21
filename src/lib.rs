@@ -299,7 +299,10 @@ impl Sketch {
             .iter()
             .map(|sketch| sketch.bind(py).try_borrow())
             .collect::<Result<Vec<_>, _>>()?;
-        let inners = guards.iter().map(|sketch| &sketch.inner).collect::<Vec<_>>();
+        let inners = guards
+            .iter()
+            .map(|sketch| &sketch.inner)
+            .collect::<Vec<_>>();
         Ok(py.detach(move || self.inner.intersection_many(inners).collect()))
     }
 
@@ -311,7 +314,10 @@ impl Sketch {
             .iter()
             .map(|sketch| sketch.bind(py).try_borrow())
             .collect::<Result<Vec<_>, _>>()?;
-        let inners = guards.iter().map(|sketch| &sketch.inner).collect::<Vec<_>>();
+        let inners = guards
+            .iter()
+            .map(|sketch| &sketch.inner)
+            .collect::<Vec<_>>();
         Ok(py.detach(move || self.inner.similarity_many(inners).collect()))
     }
 
